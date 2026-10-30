@@ -92,6 +92,33 @@
       cursor: pointer;
     }
     .prefs .chips button.on { background: #fff7ed; border-color: #ea580c; color: #c2410c; }
+    .taste-form { margin-top: 18px; text-align: left; }
+    .taste-form label { display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; }
+    .taste-row { display: flex; gap: 8px; }
+    .taste-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      border: 2px solid #fdba74;
+      border-radius: 12px;
+      font-size: 1rem;
+      color: inherit;
+    }
+    .taste-row input:focus { outline: none; border-color: #ea580c; }
+    .taste-row button {
+      border: 0;
+      border-radius: 12px;
+      padding: 0 16px;
+      background: #ea580c;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .taste-row button:hover { background: #c2410c; }
+    .taste-hint { margin: 8px 0 0 !important; font-size: 0.8rem !important; text-align: left; }
+    .taste-hint.warn { color: #b91c1c !important; }
+    .tags { margin: -16px 0 24px; color: #c2410c; font-size: 0.85rem; }
     .filters-title { font-size: 0.85rem; color: #9a3412; margin-bottom: 8px; }
     .history { margin-top: 32px; width: 100%; max-width: 420px; }
     .history h2 { font-size: 1rem; color: #9a3412; margin-bottom: 10px; }
@@ -107,6 +134,15 @@
     <h2>😋 어떤 음식을 좋아하세요?</h2>
     <p>좋아하는 종류를 고르면 그 안에서 추천해 드려요 (여러 개 선택 가능)</p>
     <div class="chips" id="prefs"></div>
+
+    <form class="taste-form" id="taste-form">
+      <label for="taste-input">✏️ 먹고 싶은 걸 직접 적어도 돼요</label>
+      <div class="taste-row">
+        <input id="taste-input" type="text" placeholder="예: 매운 거, 국물, 고기" autocomplete="off">
+        <button type="submit">추천받기</button>
+      </div>
+      <p class="taste-hint" id="taste-hint">매운 · 국물 · 고기 · 면 · 밥 · 해산물 · 가벼운 · 차가운 · 튀김 · 든든 · 담백 · 달콤, 메뉴 이름도 OK</p>
+    </form>
   </section>
 
   <div class="card">
@@ -115,6 +151,7 @@
       <div class="emoji" id="emoji"></div>
       <div class="menu" id="menu"></div>
       <span class="category" id="category"></span>
+      <div class="tags" id="tags"></div>
     </div>
 
     <p class="filters-title">다른 종류도 보고 싶다면?</p>
@@ -133,40 +170,57 @@
 
   <script>
     const MENUS = [
-      { name: '김치찌개', emoji: '🍲', category: '한식' },
-      { name: '된장찌개', emoji: '🥘', category: '한식' },
-      { name: '비빔밥', emoji: '🍚', category: '한식' },
-      { name: '제육볶음', emoji: '🐷', category: '한식' },
-      { name: '불고기', emoji: '🥩', category: '한식' },
-      { name: '순두부찌개', emoji: '🌶️', category: '한식' },
-      { name: '냉면', emoji: '🍜', category: '한식' },
-      { name: '국밥', emoji: '🍲', category: '한식' },
-      { name: '김밥', emoji: '🍙', category: '분식' },
-      { name: '떡볶이', emoji: '🌶️', category: '분식' },
-      { name: '라면', emoji: '🍜', category: '분식' },
-      { name: '돈가스', emoji: '🍛', category: '일식' },
-      { name: '초밥', emoji: '🍣', category: '일식' },
-      { name: '라멘', emoji: '🍜', category: '일식' },
-      { name: '우동', emoji: '🍥', category: '일식' },
-      { name: '카레', emoji: '🍛', category: '일식' },
-      { name: '짜장면', emoji: '🍝', category: '중식' },
-      { name: '짬뽕', emoji: '🍜', category: '중식' },
-      { name: '볶음밥', emoji: '🍳', category: '중식' },
-      { name: '마라탕', emoji: '🌶️', category: '중식' },
-      { name: '파스타', emoji: '🍝', category: '양식' },
-      { name: '피자', emoji: '🍕', category: '양식' },
-      { name: '햄버거', emoji: '🍔', category: '양식' },
-      { name: '샐러드', emoji: '🥗', category: '양식' },
-      { name: '쌀국수', emoji: '🍜', category: '아시안' },
-      { name: '팟타이', emoji: '🍤', category: '아시안' },
-      { name: '분짜', emoji: '🥢', category: '아시안' },
+      { name: '김치찌개', emoji: '🍲', category: '한식', tags: ['매운', '국물', '밥'] },
+      { name: '된장찌개', emoji: '🥘', category: '한식', tags: ['국물', '밥', '담백'] },
+      { name: '비빔밥', emoji: '🍚', category: '한식', tags: ['밥', '가벼운'] },
+      { name: '제육볶음', emoji: '🐷', category: '한식', tags: ['매운', '고기', '밥', '든든'] },
+      { name: '불고기', emoji: '🥩', category: '한식', tags: ['고기', '밥', '달콤'] },
+      { name: '순두부찌개', emoji: '🌶️', category: '한식', tags: ['매운', '국물', '밥'] },
+      { name: '냉면', emoji: '🍜', category: '한식', tags: ['면', '차가운', '국물'] },
+      { name: '국밥', emoji: '🍲', category: '한식', tags: ['국물', '밥', '고기', '든든'] },
+      { name: '김밥', emoji: '🍙', category: '분식', tags: ['밥', '가벼운'] },
+      { name: '떡볶이', emoji: '🌶️', category: '분식', tags: ['매운', '달콤'] },
+      { name: '라면', emoji: '🍜', category: '분식', tags: ['면', '국물', '매운'] },
+      { name: '돈가스', emoji: '🍛', category: '일식', tags: ['고기', '튀김', '든든'] },
+      { name: '초밥', emoji: '🍣', category: '일식', tags: ['해산물', '밥', '담백'] },
+      { name: '라멘', emoji: '🍜', category: '일식', tags: ['면', '국물', '고기'] },
+      { name: '우동', emoji: '🍥', category: '일식', tags: ['면', '국물', '담백'] },
+      { name: '카레', emoji: '🍛', category: '일식', tags: ['밥', '든든'] },
+      { name: '짜장면', emoji: '🍝', category: '중식', tags: ['면', '든든', '달콤'] },
+      { name: '짬뽕', emoji: '🍜', category: '중식', tags: ['면', '국물', '매운', '해산물'] },
+      { name: '볶음밥', emoji: '🍳', category: '중식', tags: ['밥'] },
+      { name: '마라탕', emoji: '🌶️', category: '중식', tags: ['매운', '국물'] },
+      { name: '파스타', emoji: '🍝', category: '양식', tags: ['면'] },
+      { name: '피자', emoji: '🍕', category: '양식', tags: ['든든'] },
+      { name: '햄버거', emoji: '🍔', category: '양식', tags: ['고기', '든든'] },
+      { name: '샐러드', emoji: '🥗', category: '양식', tags: ['가벼운', '차가운', '담백'] },
+      { name: '쌀국수', emoji: '🍜', category: '아시안', tags: ['면', '국물', '고기', '담백'] },
+      { name: '팟타이', emoji: '🍤', category: '아시안', tags: ['면', '해산물', '달콤'] },
+      { name: '분짜', emoji: '🥢', category: '아시안', tags: ['면', '고기', '차가운'] },
     ];
     const FOOD_TYPES = [...new Set(MENUS.map(m => m.category))];
     const CATEGORIES = ['내 취향', '전체', ...FOOD_TYPES];
     const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 좋아하는 종류는 브라우저에 저장해서 다음에 열어도 기억합니다.
+    // 직접 적은 말을 태그로 바꾸기 위한 단어 사전입니다.
+    const TAG_WORDS = {
+      매운: ['매운', '맵', '매콤', '얼큰', '칼칼'],
+      국물: ['국물', '찌개', '국', '탕', '뜨끈', '따뜻', '해장'],
+      고기: ['고기', '돼지', '소고기', '닭', '육류'],
+      면: ['면', '국수', '누들'],
+      밥: ['밥', '덮밥', '쌀'],
+      해산물: ['해산물', '해물', '생선', '새우', '회'],
+      가벼운: ['가벼', '가볍', '다이어트', '건강', '채소', '야채'],
+      차가운: ['차가', '차갑', '시원', '냉'],
+      튀김: ['튀김', '튀긴', '바삭'],
+      든든: ['든든', '배고', '배불'],
+      담백: ['담백', '순한', '깔끔', '안 매운', '안매운'],
+      달콤: ['달콤', '달달', '단거', '단 거', '단맛'],
+    };
+
+    // 좋아하는 종류와 직접 적은 취향은 브라우저에 저장해서 다음에 열어도 기억합니다.
     let prefs = JSON.parse(localStorage.getItem('lunchPrefs') || '[]');
+    let taste = localStorage.getItem('lunchTaste') || '';
     let category = '내 취향';
     let current = null;
 
@@ -178,17 +232,53 @@
       return hash;
     }
 
-    function preferredMenus() {
-      return prefs.length ? MENUS.filter(m => prefs.includes(m.category)) : MENUS;
+    // 쉼표로 나눕니다. 띄어쓰기는 그대로 두어야 '안 매운' 같은 말을 알아볼 수 있어요.
+    function tasteWords() {
+      return taste.split(/[,，]/).map(w => w.trim()).filter(Boolean);
     }
 
-    function pool() {
-      if (category === '내 취향') return preferredMenus();
-      if (category === '전체') return MENUS;
-      return MENUS.filter(m => m.category === category);
+    // 적은 단어가 메뉴 이름, 종류, 태그와 얼마나 맞는지 점수를 매깁니다.
+    function scoreMenu(menu, words) {
+      let score = 0;
+      for (const word of words) {
+        if (menu.name.includes(word) || word.includes(menu.name)) score += 3;
+        if (word.includes(menu.category)) score += 2;
+        const notSpicy = /안\s*(매|맵)/.test(word);
+        for (const tag of menu.tags) {
+          if (tag === '매운' && notSpicy) continue;
+          if (TAG_WORDS[tag].some(w => word.includes(w))) score += 1;
+        }
+      }
+      return score;
+    }
+
+    // 가장 잘 맞는 메뉴들만 남깁니다. 하나도 안 맞으면 null을 돌려줍니다.
+    function bestMatches(list) {
+      const words = tasteWords();
+      const scored = list.map(m => ({ m, s: scoreMenu(m, words) }));
+      const max = Math.max(0, ...scored.map(x => x.s));
+      return max > 0 ? scored.filter(x => x.s === max).map(x => x.m) : null;
+    }
+
+    function byCategory(cat) {
+      if (cat === '내 취향') return prefs.length ? MENUS.filter(m => prefs.includes(m.category)) : MENUS;
+      if (cat === '전체') return MENUS;
+      return MENUS.filter(m => m.category === cat);
+    }
+
+    function pool(cat = category) {
+      const list = byCategory(cat);
+      if (!tasteWords().length) return list;
+      // 고른 종류 안에서 먼저 찾고, 없으면 '내 취향'일 때만 전체 메뉴에서 다시 찾습니다.
+      return bestMatches(list) || (cat === '내 취향' && bestMatches(MENUS)) || list;
+    }
+
+    function preferredMenus() {
+      return pool('내 취향');
     }
 
     function todayLabel() {
+      if (category === '내 취향' && taste && bestMatches(MENUS)) return `"${taste}" 취향 맞춤 오늘의 메뉴`;
       if (category === '내 취향' && prefs.length) return `${prefs.join(' · ')} 좋아하는 당신을 위한 오늘의 메뉴`;
       if (category === '내 취향' || category === '전체') return '오늘의 추천 메뉴';
       return `오늘의 ${category} 메뉴`;
@@ -204,6 +294,7 @@
       document.getElementById('emoji').textContent = menu.emoji;
       document.getElementById('menu').textContent = menu.name;
       document.getElementById('category').textContent = menu.category;
+      document.getElementById('tags').textContent = menu.tags.map(t => `#${t}`).join(' ');
       const box = document.getElementById('menu-box');
       box.classList.remove('spin');
       void box.offsetWidth; // 애니메이션 다시 시작
@@ -280,6 +371,29 @@
     document.getElementById('today').addEventListener('click', showToday);
     document.getElementById('reroll').addEventListener('click', reroll);
 
+    const HINT = document.getElementById('taste-hint').textContent;
+
+    function updateHint() {
+      const hint = document.getElementById('taste-hint');
+      const noMatch = taste && !bestMatches(MENUS);
+      hint.textContent = noMatch ? `"${taste}"에 맞는 메뉴를 못 찾았어요. 다른 말로 적어볼까요?` : HINT;
+      hint.classList.toggle('warn', Boolean(noMatch));
+    }
+
+    const tasteInput = document.getElementById('taste-input');
+    tasteInput.value = taste;
+    document.getElementById('taste-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      taste = tasteInput.value.trim();
+      localStorage.setItem('lunchTaste', taste);
+      category = '내 취향';
+      updateHint();
+      renderFilters();
+      renderHistory();
+      showToday();
+    });
+
+    updateHint();
     renderPrefs();
     renderFilters();
     showToday();
