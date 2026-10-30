@@ -69,6 +69,30 @@
     #reroll:hover { background: #c2410c; }
     #today { background: #ffedd5; color: #9a3412; }
     #today:hover { background: #fed7aa; }
+    .prefs {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 20px;
+      padding: 20px 24px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .prefs h2 { font-size: 1.1rem; margin-bottom: 4px; }
+    .prefs p { color: #9a3412; font-size: 0.85rem; margin-bottom: 14px; }
+    .prefs .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .prefs .chips button {
+      border: 2px solid #fdba74;
+      background: white;
+      color: #9a3412;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .prefs .chips button.on { background: #fff7ed; border-color: #ea580c; color: #c2410c; }
+    .filters-title { font-size: 0.85rem; color: #9a3412; margin-bottom: 8px; }
     .history { margin-top: 32px; width: 100%; max-width: 420px; }
     .history h2 { font-size: 1rem; color: #9a3412; margin-bottom: 10px; }
     .history ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -79,6 +103,12 @@
   <h1>🍱 오늘 점심 뭐 먹지?</h1>
   <p class="date" id="date"></p>
 
+  <section class="prefs">
+    <h2>😋 어떤 음식을 좋아하세요?</h2>
+    <p>좋아하는 종류를 고르면 그 안에서 추천해 드려요 (여러 개 선택 가능)</p>
+    <div class="chips" id="prefs"></div>
+  </section>
+
   <div class="card">
     <p class="label" id="label">오늘의 추천 메뉴</p>
     <div class="menu-box" id="menu-box">
@@ -87,6 +117,7 @@
       <span class="category" id="category"></span>
     </div>
 
+    <p class="filters-title">다른 종류도 보고 싶다면?</p>
     <div class="filters" id="filters"></div>
 
     <div class="actions">
@@ -130,10 +161,13 @@
       { name: '팟타이', emoji: '🍤', category: '아시안' },
       { name: '분짜', emoji: '🥢', category: '아시안' },
     ];
-    const CATEGORIES = ['전체', ...new Set(MENUS.map(m => m.category))];
+    const FOOD_TYPES = [...new Set(MENUS.map(m => m.category))];
+    const CATEGORIES = ['내 취향', '전체', ...FOOD_TYPES];
     const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-    let category = '전체';
+    // 좋아하는 종류는 브라우저에 저장해서 다음에 열어도 기억합니다.
+    let prefs = JSON.parse(localStorage.getItem('lunchPrefs') || '[]');
+    let category = '내 취향';
     let current = null;
 
     // 날짜를 시드로 쓰는 간단한 해시: 같은 날에는 항상 같은 메뉴가 나옵니다.
@@ -144,8 +178,20 @@
       return hash;
     }
 
+    function preferredMenus() {
+      return prefs.length ? MENUS.filter(m => prefs.includes(m.category)) : MENUS;
+    }
+
     function pool() {
-      return category === '전체' ? MENUS : MENUS.filter(m => m.category === category);
+      if (category === '내 취향') return preferredMenus();
+      if (category === '전체') return MENUS;
+      return MENUS.filter(m => m.category === category);
+    }
+
+    function todayLabel() {
+      if (category === '내 취향' && prefs.length) return `${prefs.join(' · ')} 좋아하는 당신을 위한 오늘의 메뉴`;
+      if (category === '내 취향' || category === '전체') return '오늘의 추천 메뉴';
+      return `오늘의 ${category} 메뉴`;
     }
 
     function menuForDate(date, list = MENUS) {
@@ -165,7 +211,27 @@
     }
 
     function showToday() {
-      show(menuForDate(new Date(), pool()), '오늘의 추천 메뉴');
+      show(menuForDate(new Date(), pool()), todayLabel());
+    }
+
+    function renderPrefs() {
+      const box = document.getElementById('prefs');
+      box.innerHTML = '';
+      FOOD_TYPES.forEach(type => {
+        const btn = document.createElement('button');
+        btn.textContent = type;
+        if (prefs.includes(type)) btn.classList.add('on');
+        btn.addEventListener('click', () => {
+          prefs = prefs.includes(type) ? prefs.filter(p => p !== type) : [...prefs, type];
+          localStorage.setItem('lunchPrefs', JSON.stringify(prefs));
+          category = '내 취향';
+          renderPrefs();
+          renderFilters();
+          renderHistory();
+          showToday();
+        });
+        box.appendChild(btn);
+      });
     }
 
     function reroll() {
@@ -195,11 +261,12 @@
 
     function renderHistory() {
       const ul = document.getElementById('history');
+      ul.innerHTML = '';
       const today = new Date();
       for (let i = 6; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
-        const m = menuForDate(d);
+        const m = menuForDate(d, preferredMenus());
         const li = document.createElement('li');
         li.textContent = `${WEEKDAYS[d.getDay()]} ${m.emoji} ${m.name}`;
         if (i === 0) li.style.fontWeight = '700';
@@ -213,6 +280,7 @@
     document.getElementById('today').addEventListener('click', showToday);
     document.getElementById('reroll').addEventListener('click', reroll);
 
+    renderPrefs();
     renderFilters();
     showToday();
     renderHistory();
