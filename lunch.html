@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘 점심 뭐 먹지?</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: linear-gradient(160deg, #fff7ed 0%, #fed7aa 100%);
+      color: #431407;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+    h1 { font-size: clamp(1.8rem, 6vw, 2.6rem); margin-bottom: 6px; }
+    .date { color: #9a3412; margin-bottom: 32px; }
+    .card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 12px 32px rgba(154, 52, 18, 0.15);
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .label { color: #c2410c; font-weight: 600; margin-bottom: 12px; }
+    .emoji { font-size: 5rem; line-height: 1.2; }
+    .menu { font-size: 2.2rem; font-weight: 800; margin: 8px 0 4px; }
+    .category {
+      display: inline-block;
+      background: #ffedd5;
+      color: #9a3412;
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+    .menu-box.spin { animation: pop 0.35s ease; }
+    @keyframes pop {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+    .filters button {
+      border: 1px solid #fdba74;
+      background: white;
+      color: #9a3412;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .filters button.active { background: #ea580c; border-color: #ea580c; color: white; }
+    .actions { display: flex; gap: 10px; }
+    .actions button {
+      flex: 1;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #reroll { background: #ea580c; color: white; }
+    #reroll:hover { background: #c2410c; }
+    #today { background: #ffedd5; color: #9a3412; }
+    #today:hover { background: #fed7aa; }
+    .history { margin-top: 32px; width: 100%; max-width: 420px; }
+    .history h2 { font-size: 1rem; color: #9a3412; margin-bottom: 10px; }
+    .history ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+    .history li { background: rgba(255, 255, 255, 0.7); border-radius: 10px; padding: 6px 12px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>🍱 오늘 점심 뭐 먹지?</h1>
+  <p class="date" id="date"></p>
+
+  <div class="card">
+    <p class="label" id="label">오늘의 추천 메뉴</p>
+    <div class="menu-box" id="menu-box">
+      <div class="emoji" id="emoji"></div>
+      <div class="menu" id="menu"></div>
+      <span class="category" id="category"></span>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="actions">
+      <button id="today">오늘의 메뉴</button>
+      <button id="reroll">🎲 다른 메뉴</button>
+    </div>
+  </div>
+
+  <section class="history">
+    <h2>이번 주 추천 메뉴</h2>
+    <ul id="history"></ul>
+  </section>
+
+  <script>
+    const MENUS = [
+      { name: '김치찌개', emoji: '🍲', category: '한식' },
+      { name: '된장찌개', emoji: '🥘', category: '한식' },
+      { name: '비빔밥', emoji: '🍚', category: '한식' },
+      { name: '제육볶음', emoji: '🐷', category: '한식' },
+      { name: '불고기', emoji: '🥩', category: '한식' },
+      { name: '순두부찌개', emoji: '🌶️', category: '한식' },
+      { name: '냉면', emoji: '🍜', category: '한식' },
+      { name: '국밥', emoji: '🍲', category: '한식' },
+      { name: '김밥', emoji: '🍙', category: '분식' },
+      { name: '떡볶이', emoji: '🌶️', category: '분식' },
+      { name: '라면', emoji: '🍜', category: '분식' },
+      { name: '돈가스', emoji: '🍛', category: '일식' },
+      { name: '초밥', emoji: '🍣', category: '일식' },
+      { name: '라멘', emoji: '🍜', category: '일식' },
+      { name: '우동', emoji: '🍥', category: '일식' },
+      { name: '카레', emoji: '🍛', category: '일식' },
+      { name: '짜장면', emoji: '🍝', category: '중식' },
+      { name: '짬뽕', emoji: '🍜', category: '중식' },
+      { name: '볶음밥', emoji: '🍳', category: '중식' },
+      { name: '마라탕', emoji: '🌶️', category: '중식' },
+      { name: '파스타', emoji: '🍝', category: '양식' },
+      { name: '피자', emoji: '🍕', category: '양식' },
+      { name: '햄버거', emoji: '🍔', category: '양식' },
+      { name: '샐러드', emoji: '🥗', category: '양식' },
+      { name: '쌀국수', emoji: '🍜', category: '아시안' },
+      { name: '팟타이', emoji: '🍤', category: '아시안' },
+      { name: '분짜', emoji: '🥢', category: '아시안' },
+    ];
+    const CATEGORIES = ['전체', ...new Set(MENUS.map(m => m.category))];
+    const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+    let category = '전체';
+    let current = null;
+
+    // 날짜를 시드로 쓰는 간단한 해시: 같은 날에는 항상 같은 메뉴가 나옵니다.
+    function seedFromDate(date) {
+      const key = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+      let hash = 0;
+      for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+      return hash;
+    }
+
+    function pool() {
+      return category === '전체' ? MENUS : MENUS.filter(m => m.category === category);
+    }
+
+    function menuForDate(date, list = MENUS) {
+      return list[seedFromDate(date) % list.length];
+    }
+
+    function show(menu, label) {
+      current = menu;
+      document.getElementById('label').textContent = label;
+      document.getElementById('emoji').textContent = menu.emoji;
+      document.getElementById('menu').textContent = menu.name;
+      document.getElementById('category').textContent = menu.category;
+      const box = document.getElementById('menu-box');
+      box.classList.remove('spin');
+      void box.offsetWidth; // 애니메이션 다시 시작
+      box.classList.add('spin');
+    }
+
+    function showToday() {
+      show(menuForDate(new Date(), pool()), '오늘의 추천 메뉴');
+    }
+
+    function reroll() {
+      const list = pool();
+      let next;
+      do {
+        next = list[Math.floor(Math.random() * list.length)];
+      } while (list.length > 1 && next === current);
+      show(next, '이건 어때요?');
+    }
+
+    function renderFilters() {
+      const box = document.getElementById('filters');
+      box.innerHTML = '';
+      CATEGORIES.forEach(c => {
+        const btn = document.createElement('button');
+        btn.textContent = c;
+        if (c === category) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+          category = c;
+          renderFilters();
+          showToday();
+        });
+        box.appendChild(btn);
+      });
+    }
+
+    function renderHistory() {
+      const ul = document.getElementById('history');
+      const today = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const m = menuForDate(d);
+        const li = document.createElement('li');
+        li.textContent = `${WEEKDAYS[d.getDay()]} ${m.emoji} ${m.name}`;
+        if (i === 0) li.style.fontWeight = '700';
+        ul.appendChild(li);
+      }
+    }
+
+    const now = new Date();
+    document.getElementById('date').textContent =
+      `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS[now.getDay()]}요일`;
+    document.getElementById('today').addEventListener('click', showToday);
+    document.getElementById('reroll').addEventListener('click', reroll);
+
+    renderFilters();
+    showToday();
+    renderHistory();
+  </script>
+</body>
+</html>
