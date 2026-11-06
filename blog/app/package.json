@@ -1,0 +1,16 @@
+{
+  "name": "blog-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "3-tier 블로그 - Application tier (REST API)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.0"
+  }
+}

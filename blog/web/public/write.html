@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>글쓰기 - My Blog</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main>
+    <h1 id="heading">새 글 쓰기</h1>
+    <form id="form">
+      <label for="title">제목</label>
+      <input id="title" maxlength="200" required>
+
+      <label for="content">내용</label>
+      <textarea id="content" maxlength="20000" required></textarea>
+
+      <div class="form-foot">
+        <a class="btn ghost" id="cancel" href="/">취소</a>
+        <button class="btn" type="submit" id="submit">발행하기</button>
+      </div>
+      <p class="msg error" id="msg"></p>
+    </form>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (!auth.token) {
+      location.href = `/login.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+    }
+
+    const editId = getParam('id');
+    const titleEl = document.getElementById('title');
+    const contentEl = document.getElementById('content');
+    const msg = document.getElementById('msg');
+    const submit = document.getElementById('submit');
+
+    async function loadForEdit() {
+      document.getElementById('heading').textContent = '글 수정';
+      submit.textContent = '수정 완료';
+      document.getElementById('cancel').href = `/post.html?id=${encodeURIComponent(editId)}`;
+      try {
+        const p = await api(`/posts/${encodeURIComponent(editId)}`);
+        if (auth.user && auth.user.id !== p.user_id) {
+          msg.textContent = '본인이 쓴 글만 수정할 수 있습니다.';
+          submit.disabled = true;
+        }
+        titleEl.value = p.title;
+        contentEl.value = p.content;
+      } catch (err) {
+        msg.textContent = err.message;
+        submit.disabled = true;
+      }
+    }
+    if (editId) loadForEdit();
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submit.disabled = true;
+      msg.textContent = '';
+      const body = { title: titleEl.value, content: contentEl.value };
+      try {
+        const res = editId
+          ? await api(`/posts/${encodeURIComponent(editId)}`, { method: 'PUT', body })
+          : await api('/posts', { method: 'POST', body });
+        location.href = `/post.html?id=${res.id}`;
+      } catch (err) {
+        msg.textContent = err.message;
+        submit.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

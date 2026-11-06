@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>글 보기 - My Blog</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main>
+    <article id="post"></article>
+
+    <section class="comments">
+      <h3 id="comment-title">댓글</h3>
+      <div id="comments"></div>
+      <div id="comment-form-area"></div>
+    </section>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const id = getParam('id');
+    const postEl = document.getElementById('post');
+    const commentsEl = document.getElementById('comments');
+
+    async function loadPost() {
+      try {
+        const p = await api(`/posts/${encodeURIComponent(id)}`);
+        document.title = `${p.title} - My Blog`;
+
+        const edited = p.updated_at !== p.created_at ? ' (수정됨)' : '';
+        const head = el('div', { class: 'post-head' },
+          el('h1', { text: p.title }),
+          el('div', { class: 'meta', text: `${p.username} · ${formatDate(p.created_at)}${edited}` })
+        );
+
+        const me = auth.user;
+        let actions = null;
+        if (me && me.id === p.user_id) {
+          actions = el('div', { class: 'actions' },
+            el('a', { class: 'btn ghost', href: `/write.html?id=${p.id}`, text: '수정' }),
+            el('button', { class: 'btn danger', text: '삭제', onclick: () => removePost(p.id) })
+          );
+        }
+        postEl.replaceChildren(head, el('div', { class: 'post-body', text: p.content }), actions);
+      } catch (err) {
+        showError(postEl, err.message);
+        document.querySelector('.comments').hidden = true;
+      }
+    }
+
+    async function removePost(postId) {
+      if (!confirm('정말 이 글을 삭제할까요? 댓글도 함께 삭제됩니다.')) return;
+      try {
+        await api(`/posts/${postId}`, { method: 'DELETE' });
+        location.href = '/';
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const list = await api(`/posts/${encodeURIComponent(id)}/comments`);
+        document.getElementById('comment-title').textContent = `댓글 ${list.length}`;
+        commentsEl.replaceChildren(...list.map(c =>
+          el('div', { class: 'comment' },
+            el('div', { class: 'meta', text: `${c.username} · ${formatDate(c.created_at)}` }),
+            el('p', { text: c.content })
+          )
+        ));
+      } catch (err) {
+        showError(commentsEl, err.message);
+      }
+    }
+
+    function renderCommentForm() {
+      const area = document.getElementById('comment-form-area');
+      if (!auth.token) {
+        area.replaceChildren(el('p', { class: 'meta' },
+          el('a', { href: `/login.html?next=${encodeURIComponent(location.pathname + location.search)}`, text: '로그인' }),
+          '하면 댓글을 남길 수 있어요.'
+        ));
+        return;
+      }
+      const textarea = el('textarea', { class: 'short', placeholder: '댓글을 입력하세요', maxlength: '1000', required: '' });
+      const msg = el('p', { class: 'msg error' });
+      const btn = el('button', { class: 'btn', type: 'submit', text: '댓글 등록' });
+      const form = el('form', {
+        onsubmit: async (e) => {
+          e.preventDefault();
+          btn.disabled = true;
+          msg.textContent = '';
+          try {
+            await api(`/posts/${encodeURIComponent(id)}/comments`, { method: 'POST', body: { content: textarea.value } });
+            textarea.value = '';
+            await loadComments();
+          } catch (err) {
+            msg.textContent = err.message;
+          } finally {
+            btn.disabled = false;
+          }
+        },
+      }, textarea, el('div', { class: 'form-foot' }, btn), msg);
+      area.replaceChildren(form);
+    }
+
+    loadPost();
+    loadComments();
+    renderCommentForm();
+  </script>
+</body>
+</html>

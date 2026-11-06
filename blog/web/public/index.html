@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Blog</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <main>
+    <h1>최근 글</h1>
+    <p class="meta" id="total"></p>
+    <section id="list"></section>
+    <nav class="pager" id="pager"></nav>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const list = document.getElementById('list');
+    const pager = document.getElementById('pager');
+    const page = Math.max(1, parseInt(getParam('page'), 10) || 1);
+
+    async function load() {
+      try {
+        const data = await api(`/posts?page=${page}`);
+        document.getElementById('total').textContent = `전체 ${data.total}개의 글`;
+
+        if (data.posts.length === 0) {
+          list.replaceChildren(el('p', { class: 'empty', text: '아직 글이 없어요. 첫 글을 써 보세요!' }));
+          return;
+        }
+        list.replaceChildren(...data.posts.map(p =>
+          el('article', { class: 'card post-item' },
+            el('h2', {}, el('a', { href: `/post.html?id=${p.id}`, text: p.title })),
+            el('p', { class: 'excerpt', text: p.excerpt }),
+            el('div', { class: 'meta', text: `${p.username} · ${formatDate(p.created_at)} · 댓글 ${p.comment_count}` })
+          )
+        ));
+
+        if (data.totalPages > 1) {
+          pager.replaceChildren(
+            page > 1 ? el('a', { class: 'btn ghost', href: `/?page=${page - 1}`, text: '← 이전' }) : null,
+            el('span', { text: `${page} / ${data.totalPages}` }),
+            page < data.totalPages ? el('a', { class: 'btn ghost', href: `/?page=${page + 1}`, text: '다음 →' }) : null
+          );
+        }
+      } catch (err) {
+        showError(list, `글 목록을 불러오지 못했어요: ${err.message}`);
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
